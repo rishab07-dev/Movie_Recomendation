@@ -58,7 +58,7 @@ TITLE_TO_IDX: Optional[Dict[str, int]] = None
 class TMDBMovieCard(BaseModel):
     tmdb_id: int
     title: str
-    overview: str
+    overview: Optional[str] = None
     poster_url: Optional[str]=None
     release_date: Optional[str]=None
     vote_average: Optional[float]=None
@@ -138,13 +138,13 @@ async def tmdb_cards_from_results(
             TMDBMovieCard(
                 tmdb_id=int(m["id"]),
                 title=m.get("title") or m.get("name") or "",
+                overview=m.get("overview"), # <--- ADD THIS LINE
                 poster_url=make_img_url(m.get("poster_path")),
                 release_date=m.get("release_date"),
                 vote_average=m.get("vote_average"),
             )
         )
     return out
-
 
 async def tmdb_movie_details(movie_id: int) -> TMDBMovieDetails:
     data = await tmdb_get(f"/movie/{movie_id}", {"language": "en-US"})
@@ -255,10 +255,6 @@ def tfidf_recommend_titles(
     return out
 
 async def attach_tmdb_card_by_title(title: str) -> Optional[TMDBMovieCard]:
-    """
-    Uses TMDB search by title to fetch poster for a local title.
-    If not found, returns None (never crashes the endpoint).
-    """
     try:
         m = await tmdb_search_first(title)
         if not m:
@@ -266,6 +262,7 @@ async def attach_tmdb_card_by_title(title: str) -> Optional[TMDBMovieCard]:
         return TMDBMovieCard(
             tmdb_id=int(m["id"]),
             title=m.get("title") or title,
+            overview=m.get("overview"), # <--- ADD THIS LINE
             poster_url=make_img_url(m.get("poster_path")),
             release_date=m.get("release_date"),
             vote_average=m.get("vote_average"),
